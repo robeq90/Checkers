@@ -1,19 +1,31 @@
 {
-    "WindowSize": {
-        "Width": 0,
-        "Hight": 0
-    },
-    "Bot": {
-        "IsWhiteBot": false,
-        "IsBlackBot": true,
-        "WhiteBotLevel": 0,
-        "BlackBotLevel": 5,
-        "BotScoringType": "NumberAndPotential",
-        "BotDelayMS": 0,
-        "NoRandom": false,
-        "Optimization": "O1"
-    },
-    "Game": {
-        "MaxNumTurns": 120
-    }
+  "WindowSize": {
+    "Width": 0,
+    "Height": 0,
+    "// Width_comment": "Window width of the game application in pixels",
+    "// Height_comment": "Window height of the game application in pixels"
+  },
+  "Bot": {
+    "IsWhiteBot": false,
+    "IsBlackBot": true,
+    "WhiteBotLevel": 0,
+    "BlackBotLevel": 5,
+    "BotScoringType": "NumberAndPotential",
+    "BotDelayMS": 0,
+    "NoRandom": false,
+    "Optimization": "O1",
+    "// IsWhiteBot_comment": "Whether the bot is enabled for the white player",
+    "// IsBlackBot_comment": "Whether the bot is enabled for the black player",
+    "// WhiteBotLevel_comment": "Difficulty level of the white bot (0 means disabled)",
+    "// BlackBotLevel_comment": "Difficulty level of the black bot",
+    "// BotScoringType_comment": "The scoring method used by the bot (e.g., NumberAndPotential)",
+    "// BotDelayMS_comment": "Delay in milliseconds before the bot makes a move",
+    "// NoRandom_comment": "Disables randomness in the bot's move selection",
+    "// Optimization_comment": "Optimization level of the bot algorithm (e.g., 'O1')"
+  },
+  "Game": {
+    "MaxNumTurns": 120,
+    "// MaxNumTurns_comment": "Maximum number of turns allowed in a game"
+  }
 }
+
