@@ -18,9 +18,13 @@ class Game
     }
 
     // to start checkers
+    // Starts and runs the main game loop for the checkers game
     int play()
     {
+        // Record start time to measure game duration
         auto start = chrono::steady_clock::now();
+
+        // If replay is requested, reset logic and reload configuration, redraw board
         if (is_replay)
         {
             logic = Logic(&board, &config);
@@ -29,23 +33,37 @@ class Game
         }
         else
         {
+            // First time start - draw the initial board state
             board.start_draw();
         }
+
+        // Clear replay flag
         is_replay = false;
 
-        int turn_num = -1;
-        bool is_quit = false;
-        const int Max_turns = config("Game", "MaxNumTurns");
+        int turn_num = -1;         // Tracks current turn number
+        bool is_quit = false;      // Flag to detect if player quit the game
+        const int Max_turns = config("Game", "MaxNumTurns");  // Maximum number of turns allowed
+
+        // Main game loop - runs until max turns reached or game ends early
         while (++turn_num < Max_turns)
         {
-            beat_series = 0;
-            logic.find_turns(turn_num % 2);
+            beat_series = 0;               // Reset consecutive beats counter
+            logic.find_turns(turn_num % 2);   // Find all possible moves for current player (0 or 1)
+
+            // If no moves available, game ends
             if (logic.turns.empty())
                 break;
-            logic.Max_depth = config("Bot", string((turn_num % 2) ? "Black" : "White") + string("BotLevel"));
-            if (!config("Bot", string("Is") + string((turn_num % 2) ? "Black" : "White") + string("Bot")))
+
+            // Set bot difficulty level dynamically from config depending on player color
+            logic.Max_depth = config("Bot", std::string((turn_num % 2) ? "Black" : "White") + std::string("BotLevel"));
+
+            // Check if current player is bot or human
+            if (!config("Bot", std::string("Is") + std::string((turn_num % 2) ? "Black" : "White") + std::string("Bot")))
             {
+                // Human player's turn, handle input and responses
                 auto resp = player_turn(turn_num % 2);
+
+                // Handle special responses: quit, replay or undo move (back)
                 if (resp == Response::QUIT)
                 {
                     is_quit = true;
@@ -58,7 +76,8 @@ class Game
                 }
                 else if (resp == Response::BACK)
                 {
-                    if (config("Bot", string("Is") + string((1 - turn_num % 2) ? "Black" : "White") + string("Bot")) &&
+                    // Undo logic depending on bot presence and beat series
+                    if (config("Bot", std::string("Is") + std::string((1 - turn_num % 2) ? "Black" : "White") + std::string("Bot")) &&
                         !beat_series && board.history_mtx.size() > 2)
                     {
                         board.rollback();
@@ -73,36 +92,52 @@ class Game
                 }
             }
             else
+            {
+                // Bot player's turn
                 bot_turn(turn_num % 2);
+            }
         }
+
+        // Record end time and log game duration to a file
         auto end = chrono::steady_clock::now();
         ofstream fout(project_path + "log.txt", ios_base::app);
         fout << "Game time: " << (int)chrono::duration<double, milli>(end - start).count() << " millisec\n";
         fout.close();
 
+        // If replay requested during game, recursively restart play()
         if (is_replay)
             return play();
+
+        // If player quit, return 0 (game ended)
         if (is_quit)
             return 0;
-        int res = 2;
+
+        int res = 2;  // Default result: 2 means game ended normally without winner
+
+        // Define result based on turn count or winner
         if (turn_num == Max_turns)
         {
-            res = 0;
+            res = 0;  // Draw (max turns reached)
         }
         else if (turn_num % 2)
         {
-            res = 1;
+            res = 1;  // Player 1 wins
         }
+
+        // Show the final board and result
         board.show_final(res);
+
+        // Wait for user input on hand to replay or exit
         auto resp = hand.wait();
         if (resp == Response::REPLAY)
         {
             is_replay = true;
             return play();
         }
+
+        // Return final game result
         return res;
     }
-
   private:
     void bot_turn(const bool color)
     {
