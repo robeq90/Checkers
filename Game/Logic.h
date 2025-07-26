@@ -37,21 +37,39 @@ class Logic
     }
 
 private:
+    // Applies the specified move 'turn' to the given board matrix 'mtx'.
+// If the move includes capturing, removes the beaten piece from the board.
+// Also handles promoting a piece to a queen if it reaches the opposite end of the board.
+// Returns the updated board matrix after applying the move.
     vector<vector<POS_T>> make_turn(vector<vector<POS_T>> mtx, move_pos turn) const
     {
+        // Remove beaten piece from the board if move includes a capture
         if (turn.xb != -1)
             mtx[turn.xb][turn.yb] = 0;
+
+        // Promote to queen if piece reaches the opposite end row
         if ((mtx[turn.x][turn.y] == 1 && turn.x2 == 0) || (mtx[turn.x][turn.y] == 2 && turn.x2 == 7))
             mtx[turn.x][turn.y] += 2;
+
+        // Move the piece to the new position on the board
         mtx[turn.x2][turn.y2] = mtx[turn.x][turn.y];
+
+        // Clear the old position
         mtx[turn.x][turn.y] = 0;
+
         return mtx;
     }
 
-    double calc_score(const vector<vector<POS_T>> &mtx, const bool first_bot_color) const
+    // Calculates and returns a score evaluating the given board state 'mtx' from the perspective of 'first_bot_color'.
+    // Considers the number of regular pieces and queens for each side.
+    // Optionally incorporates positional potential if enabled by scoring_mode.
+    // Lower values favor 'first_bot_color', higher values favor the opponent.
+    double calc_score(const vector<vector<POS_T>>& mtx, const bool first_bot_color) const
     {
-        // color - who is max player
         double w = 0, wq = 0, b = 0, bq = 0;
+
+        // Count number of white pieces and white queens,
+        // as well as black pieces and black queens, on the board
         for (POS_T i = 0; i < 8; ++i)
         {
             for (POS_T j = 0; j < 8; ++j)
@@ -60,29 +78,45 @@ private:
                 wq += (mtx[i][j] == 3);
                 b += (mtx[i][j] == 2);
                 bq += (mtx[i][j] == 4);
+
+                // If scoring mode includes positional potential, add small bonus based on piece's position
                 if (scoring_mode == "NumberAndPotential")
                 {
+                    // White pieces get more points the closer they are to promotion row (row 0)
                     w += 0.05 * (mtx[i][j] == 1) * (7 - i);
+                    // Black pieces get more points the closer they are to promotion row (row 7)
                     b += 0.05 * (mtx[i][j] == 2) * (i);
                 }
             }
         }
+
+        // If the bot player is black (not first_bot_color),
+        // swap white and black totals to evaluate from bot's point of view
         if (!first_bot_color)
         {
             swap(b, w);
             swap(bq, wq);
         }
+
+        // If one side has no pieces left, return win/loss scores
         if (w + wq == 0)
-            return INF;
+            return INF;   // Bot lost (white side has no pieces)
         if (b + bq == 0)
-            return 0;
-        int q_coef = 4;
+            return 0;     // Opponent lost
+
+        int q_coef = 4;   // Queen's value coefficient
+
+        // Adjust queen coefficient if positional potential scoring is enabled
         if (scoring_mode == "NumberAndPotential")
         {
             q_coef = 5;
         }
+
+        // Calculate and return the evaluation score as a ratio of opponent's piece value to bot's
         return (b + bq * q_coef) / (w + wq * q_coef);
     }
+
+
 
     double find_first_best_turn(vector<vector<POS_T>> mtx, const bool color, const POS_T x, const POS_T y, size_t state,
                                 double alpha = -1)
