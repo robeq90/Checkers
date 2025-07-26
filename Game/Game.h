@@ -132,34 +132,55 @@ public:
         }
         return res;
     };
- private:
+private:
+    // Executes automated moves by the bot for the given player color
+    // Uses the Logic class to calculate the best sequence of moves,
+    // enforces a delay between moves to simulate thinking,
+    // logs the time taken by the bot turn.
     void bot_turn(const bool color)
     {
+        // Record start time for performance measurement
         auto start = chrono::steady_clock::now();
 
+        // Retrieve bot move delay from configuration (in milliseconds)
         auto delay_ms = config("Bot", "BotDelayMS");
-        // new thread for equal delay for each turn
-        thread th(SDL_Delay, delay_ms);
+
+        // Create a separate thread to run SDL_Delay asynchronously
+        // This allows delay to run concurrently with move calculation for smoother timing
+        std::thread th(SDL_Delay, delay_ms);
+
+        // Use logic engine to find the best moves to make for the bot playing 'color'
         auto turns = logic.find_best_turns(color);
+
+        // Wait for the delay thread to finish, ensuring the minimum delay
         th.join();
+
         bool is_first = true;
-        // making moves
+
+        // Execute each move in the sequence returned by the AI logic
         for (auto turn : turns)
         {
+            // Add delay between moves, except before the first move
             if (!is_first)
             {
                 SDL_Delay(delay_ms);
             }
             is_first = false;
+
+            // Increment capture count if this move includes capturing a piece
             beat_series += (turn.xb != -1);
+
+            // Make the move on the board, passing current beat series count
             board.move_piece(turn, beat_series);
         }
 
+        // Record end time and log the total time bot took to execute moves
         auto end = chrono::steady_clock::now();
-        ofstream fout(project_path + "log.txt", ios_base::app);
-        fout << "Bot turn time: " << (int)chrono::duration<double, milli>(end - start).count() << " millisec\n";
+        std::ofstream fout(project_path + "log.txt", std::ios_base::app);
+        fout << "Bot turn time: " << (int)chrono::duration<double, std::milli>(end - start).count() << " millisec\n";
         fout.close();
     }
+
 
     // Handles a human player's turn, receiving input and executing moves.
     Response player_turn(const bool color)
