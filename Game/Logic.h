@@ -10,14 +10,19 @@ const int INF = 1e9;
 
 class Logic
 {
-  public:
-    Logic(Board *board, Config *config) : board(board), config(config)
+public:
+    // Constructor initializes Logic instance with pointers to the Board and Config objects.
+    // Also initializes the random engine based on the "NoRandom" config flag,
+    // and sets up scoring and optimization modes according to configuration.
+    Logic(Board* board, Config* config)
+        : board(board), config(config)
     {
-        rand_eng = std::default_random_engine (
+        rand_eng = std::default_random_engine(
             !((*config)("Bot", "NoRandom")) ? unsigned(time(0)) : 0);
         scoring_mode = (*config)("Bot", "BotScoringType");
         optimization = (*config)("Bot", "Optimization");
     }
+
 
     vector<move_pos> find_best_turns(const bool color)
     {
@@ -430,16 +435,36 @@ private:
 
 
   public:
-    vector<move_pos> turns;
-    bool have_beats;
-    int Max_depth;
+      // Vector holding all currently found valid moves for the active player.
+      vector<move_pos> turns;
+
+      // Flag indicating whether there are any capturing moves available.
+      bool have_beats;
+
+      // Maximum recursion depth for the minimax search used by the bot.
+      int Max_depth;
 
   private:
-    default_random_engine rand_eng;
-    string scoring_mode;
-    string optimization;
-    vector<move_pos> next_move;
-    vector<int> next_best_state;
-    Board *board;
-    Config *config;
+      // Random number engine used to shuffle moves to introduce randomness in AI decisions.
+      default_random_engine rand_eng;
+
+      // String specifying the scoring method used during board evaluation.
+      // Examples might be "NumberAndPotential" or other scoring schemes.
+      string scoring_mode;
+
+      // String indicating the optimization level or technique applied during search.
+      string optimization;
+
+      // Vector storing the best next moves for minimax states during search.
+      vector<move_pos> next_move;
+
+      // Vector storing the indices of the best next states in the minimax search tree.
+      vector<int> next_best_state;
+
+      // Pointer to the game Board object that holds the current game state.
+      Board* board;
+
+      // Pointer to the Config object that holds game and bot configuration values.
+      Config  *config;
 };
+
