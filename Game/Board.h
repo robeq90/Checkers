@@ -7,11 +7,11 @@
 #include "../Models/Project_path.h"
 
 #ifdef __APPLE__
-    #include <SDL2/SDL.h>
-    #include <SDL2/SDL_image.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
 #else
-    #include <SDL.h>
-    #include <SDL_image.h>
+#include <SDL.h>
+#include <SDL_image.h>
 #endif
 
 using namespace std;
@@ -329,27 +329,27 @@ private:
 
     void print_exception(const string& text) {
         ofstream fout(project_path + "log.txt", ios_base::app);
-        fout << "Error: " << text << ". "<< SDL_GetError() << endl;
+        fout << "Error: " << text << ". " << SDL_GetError() << endl;
         fout.close();
     }
 
-  public:
+public:
     int W = 0;
     int H = 0;
     // history of boards
     vector<vector<vector<POS_T>>> history_mtx;
 
-  private:
-    SDL_Window *win = nullptr;
-    SDL_Renderer *ren = nullptr;
+private:
+    SDL_Window* win = nullptr;
+    SDL_Renderer* ren = nullptr;
     // textures
-    SDL_Texture *board = nullptr;
-    SDL_Texture *w_piece = nullptr;
-    SDL_Texture *b_piece = nullptr;
-    SDL_Texture *w_queen = nullptr;
-    SDL_Texture *b_queen = nullptr;
-    SDL_Texture *back = nullptr;
-    SDL_Texture *replay = nullptr;
+    SDL_Texture* board = nullptr;
+    SDL_Texture* w_piece = nullptr;
+    SDL_Texture* b_piece = nullptr;
+    SDL_Texture* w_queen = nullptr;
+    SDL_Texture* b_queen = nullptr;
+    SDL_Texture* back = nullptr;
+    SDL_Texture* replay = nullptr;
     // texture files names
     const string textures_path = project_path + "Textures/";
     const string board_path = textures_path + "board.png";
