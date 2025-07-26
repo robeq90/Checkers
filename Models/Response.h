@@ -1,5 +1,6 @@
 #pragma once
 
+
 // Enum representing possible responses or states in the game
 enum class Reponse
 {
