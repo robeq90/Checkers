@@ -215,41 +215,120 @@ private:
         have_beats = have_beats_before;
     }
 
-    void find_turns(const POS_T x, const POS_T y, const vector<vector<POS_T>> &mtx)
+    // Find all possible moves for the entire board for a given player color.
+// This function populates the vector 'turns' with valid moves the player can make.
+// It also sets 'have_beats' flag if any capture moves are available.
+// Uses the current board state retrieved from the Board object.
+    void find_turns(const bool color)
     {
-        turns.clear();
-        have_beats = false;
-        POS_T type = mtx[x][y];
-        // check beats
+        // Calls the private version with the board matrix from the Board class
+        find_turns(color, board->get_board());
+    }
+
+    // Find all possible moves for a single piece located at (x, y).
+    // This function populates the vector 'turns' with valid moves for the specified piece.
+    // It considers capture moves (beats) first, then normal moves if no captures.
+    // Uses the current board state retrieved from the Board object.
+    void find_turns(const POS_T x, const POS_T y)
+    {
+        // Calls the private version with the board matrix from the Board class
+        find_turns(x, y, board->get_board());
+    }
+
+    // Private helper function:
+    // Finds all possible moves for all pieces of the given color on the board state 'mtx'.
+    // It gathers capture moves first if any exist (mandatory capture rule).
+    // Stores all found moves in 'turns' vector and sets 'have_beats' accordingly.
+    // Shuffles moves randomly to add variation to AI move order.
+    void find_turns(const bool color, const vector<vector<POS_T>>& mtx)
+    {
+        vector<move_pos> res_turns;
+        bool have_beats_before = false;
+        for (POS_T i = 0; i < 8; ++i)
+        {
+            for (POS_T j = 0; j < 8; ++j)
+            {
+                // If square is occupied by piece of specified color (odd/even check for color)
+                if (mtx[i][j] && mtx[i][j] % 2 != color)
+                {
+                    // Find moves from this piece's position
+                    find_turns(i, j, mtx);
+
+                    // Update capture move info and maintain only capture moves if any
+                    if (have_beats && !have_beats_before)
+                    {
+                        have_beats_before = true;
+                        res_turns.clear(); // Clear previously collected normal moves
+                    }
+                    // Add moves if captures are allowed or no captures found yet
+                    if ((have_beats_before && have_beats) || !have_beats_before)
+                    {
+                        res_turns.insert(res_turns.end(), turns.begin(), turns.end());
+                    }
+                }
+            }
+        }
+        turns = res_turns;
+        // Randomly shuffle moves to add non-determinism
+        shuffle(turns.begin(), turns.end(), rand_eng);
+        have_beats = have_beats_before;
+    }
+    // Private helper function:
+    // Finds all valid moves for a piece at position (x,y) on the given board matrix 'mtx'.
+    // It checks for capture ("beat") moves first, which are mandatory in checkers.
+    // Separate logic is applied for normal pieces (1 - white, 2 - black)
+    // and queens (3,4), since queens can move multiple steps diagonally.
+    // The found moves are stored in the 'turns' vector and the capture flag is set.
+    void find_turns(const POS_T x, const POS_T y, const vector<vector<POS_T>>& mtx)
+    {
+        turns.clear();      // Clear previous moves from vector
+        have_beats = false; // Reset capture availability flag
+
+        POS_T type = mtx[x][y]; // Get piece type at the position
+
+        // Check for capture moves first, as they have priority
         switch (type)
         {
         case 1:
         case 2:
-            // check pieces
+            // Normal piece capture logic:
+            // Check the four possible jump positions two steps diagonally
             for (POS_T i = x - 2; i <= x + 2; i += 4)
             {
                 for (POS_T j = y - 2; j <= y + 2; j += 4)
                 {
+                    // Skip out-of-bound positions
                     if (i < 0 || i > 7 || j < 0 || j > 7)
                         continue;
+
+                    // Coordinates of the piece being "jumped over"
                     POS_T xb = (x + i) / 2, yb = (y + j) / 2;
+
+                    // Conditions for valid capture:
+                    // - target cell empty (mtx[i][j] == 0)
+                    // - jumped piece present and belongs to opponent (!= type%2)
                     if (mtx[i][j] || !mtx[xb][yb] || mtx[xb][yb] % 2 == type % 2)
                         continue;
+
+                    // Add capture move to vector with beaten piece coordinates
                     turns.emplace_back(x, y, i, j, xb, yb);
                 }
             }
             break;
+
         default:
-            // check queens
+            // Queen capture logic:
+            // Queens can move and capture multiple squares diagonally
             for (POS_T i = -1; i <= 1; i += 2)
             {
                 for (POS_T j = -1; j <= 1; j += 2)
                 {
-                    POS_T xb = -1, yb = -1;
-                    for (POS_T i2 = x + i, j2 = y + j; i2 != 8 && j2 != 8 && i2 != -1 && j2 != -1; i2 += i, j2 += j)
+                    POS_T xb = -1, yb = -1; // Coordinates of opponent's piece being potentially captured
+                    for (POS_T i2 = x + i, j2 = y + j; i2 >= 0 && i2 < 8 && j2 >= 0 && j2 < 8; i2 += i, j2 += j)
                     {
                         if (mtx[i2][j2])
                         {
+                            // Cannot jump own piece or jump over more than one opponent piece
                             if (mtx[i2][j2] % 2 == type % 2 || (mtx[i2][j2] % 2 != type % 2 && xb != -1))
                             {
                                 break;
@@ -257,7 +336,8 @@ private:
                             xb = i2;
                             yb = j2;
                         }
-                        if (xb != -1 && xb != i2)
+                        // If a capture is possible after opponent piece, add move
+                        if (xb != -1 && (i2 != xb))
                         {
                             turns.emplace_back(x, y, i2, j2, xb, yb);
                         }
@@ -266,37 +346,45 @@ private:
             }
             break;
         }
-        // check other turns
+
+        // If capture moves found, skip normal moves (mandatory capture rule)
         if (!turns.empty())
         {
             have_beats = true;
             return;
         }
+
+        // If no captures, find normal (non-capturing) moves next
+
         switch (type)
         {
         case 1:
         case 2:
-            // check pieces
+            // Normal piece moves:
+            // Move one step diagonally forward (direction depends on piece color)
+        {
+            POS_T i = ((type % 2) ? x - 1 : x + 1); // Move direction depends on color
+            for (POS_T j = y - 1; j <= y + 1; j += 2)
             {
-                POS_T i = ((type % 2) ? x - 1 : x + 1);
-                for (POS_T j = y - 1; j <= y + 1; j += 2)
-                {
-                    if (i < 0 || i > 7 || j < 0 || j > 7 || mtx[i][j])
-                        continue;
-                    turns.emplace_back(x, y, i, j);
-                }
-                break;
+                if (i < 0 || i > 7 || j < 0 || j > 7 || mtx[i][j])
+                    continue;
+                // Add normal move (no beat coordinates)
+                turns.emplace_back(x, y, i, j);
             }
+            break;
+        }
         default:
-            // check queens
+            // Queen normal moves:
+            // Move any number of empty squares diagonally
             for (POS_T i = -1; i <= 1; i += 2)
             {
                 for (POS_T j = -1; j <= 1; j += 2)
                 {
-                    for (POS_T i2 = x + i, j2 = y + j; i2 != 8 && j2 != 8 && i2 != -1 && j2 != -1; i2 += i, j2 += j)
+                    for (POS_T i2 = x + i, j2 = y + j; i2 >= 0 && i2 < 8 && j2 >= 0 && j2 < 8; i2 += i, j2 += j)
                     {
                         if (mtx[i2][j2])
-                            break;
+                            break; // Blocked by any piece
+                        // Add legal move positions
                         turns.emplace_back(x, y, i2, j2);
                     }
                 }
@@ -304,6 +392,8 @@ private:
             break;
         }
     }
+
+
 
   public:
     vector<move_pos> turns;
